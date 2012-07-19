@@ -2,54 +2,134 @@
 <title>2D STG SAMPLE</title>
 <script src="Three.js"></script>
 <script>
-  var camera, scene, renderer,
-  geometry, material, mesh;
+  var renderer;
+  var camera;
+  var scene;
+
+  var camera;
+  var player_object;
+  var player_shots = [];
 
   window.addEventListener('load', function(){
     init();
     animate();
   });
 
+  window.addEventListener('keydown', function(e){
+    if(e.keyCode === 87) // w
+      player_object.force.up = true;
+    if(e.keyCode === 65) // a
+      player_object.force.left = true;
+    if(e.keyCode === 83) // s
+      player_object.force.down = true;
+    if(e.keyCode === 68) // d
+      player_object.force.right = true;
+    if(e.keyCode === 32) // space
+      player_object.shoot = true;
+  });
+
+  window.addEventListener('keyup', function(e){
+    if(e.keyCode === 87) // w
+      player_object.force.up = false;
+    if(e.keyCode === 65) // a
+      player_object.force.left = false;
+    if(e.keyCode === 83) // s
+      player_object.force.down = false;
+    if(e.keyCode === 68) // d
+      player_object.force.right = false;
+    if(e.keyCode === 32) // space
+      player_object.shoot = false;
+  });
+
   function init() {
-
     scene = new THREE.Scene();
-
-    camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
+    camera = new THREE.PerspectiveCamera(
+      60,
+      window.innerWidth / window.innerHeight,
+      1, 10000
+    );
     camera.position.z = 1000;
     scene.add( camera );
 
-    geometry = new THREE.SphereGeometry(
-        200, 6, 6
-    );
-    material = new THREE.MeshBasicMaterial( { color: 0xff0000, wireframe: true } );
-
-    mesh = new THREE.Mesh( geometry, material );
-    scene.add( mesh );
+    generate_objects();
 
     renderer = new THREE.CanvasRenderer();
-    renderer.setSize( window.innerWidth, window.innerHeight );
+    renderer.setSize(
+      window.innerWidth,
+      window.innerHeight
+    );
 
     document.body.appendChild( renderer.domElement );
+  }
+
+  function generate_objects(){
+    // player
+    var g = new THREE.SphereGeometry(100, 6, 6);
+    var m = new THREE.MeshBasicMaterial(
+      { color: 0x0000ff, wireframe: true }
+    );
+    player_object = new THREE.Mesh(g, m);
+    player_object.velocity = {x:0, y:0};
+    player_object.force =
+    {up:false, down:false, left:false, right:false};
+    player_object.shoot = false;
+    player_object.update = function(){
+      if(this.force.up)
+        this.velocity.y = 10;
+      else if(this.force.down)
+        this.velocity.y = -10;
+      else
+        this.velocity.y = 0;
+      
+      if(this.force.left)
+        this.velocity.x = -10;
+      else if(this.force.right)
+        this.velocity.x = 10;
+      else
+        this.velocity.x = 0;
+      
+      this.position.x += this.velocity.x;
+      this.position.y += this.velocity.y;
+
+      if(this.shoot){
+        var g = new THREE.SphereGeometry(10, 6, 6);
+        var m = new THREE.MeshBasicMaterial(
+          { color: 0x0000ff, wireframe: true }
+          );
+        var o = new THREE.Mesh(g, m);
+        o.position.x = this.position.x;
+        o.position.y = this.position.y;
+        o.update = function(){
+          this.position.y += 10;
+          if(Math.abs(this.position.y) > 1000)
+            scene.remove(this);
+        };
+        player_shots.push(o);
+        scene.add(o);
+      }
+    };
+    scene.add(player_object);
+    
+    // enemy
+    
+    // background
+
 
   }
 
   function animate() {
-
-    // note: three.js includes requestAnimationFrame shim
     requestAnimationFrame( animate );
-    render();
-
+    update();
+    present();
   }
 
-  function render() {
+  function update(){
+    player_object.update();
+    for(var k in player_shots)
+      player_shots[k].update();
+  }
 
-    mesh.rotation.x += 0.01;
-    mesh.rotation.y += 0.02;
-
-    mesh.position.x = Math.sin(mesh.rotation.x) * 400;
-    mesh.position.y = Math.cos(mesh.rotation.x) * 400;
-
-    renderer.render( scene, camera );
-
+  function present(){
+    renderer.render(scene, camera);
   }
 </script>
